@@ -65,8 +65,9 @@ import static android.widget.Toast.makeText;
 public class MainActivity extends AppCompatActivity implements ConnectionCallbacks
         , OnConnectionFailedListener, LocationListener, AddressResultReceiver.Receiver,OnMapReadyCallback {
 
-    double latitude=0.0;
-    double longitude = 0.0;
+    double[] latitude={25.005317,25.005317,25.005317};
+    double[] longitude={121.471455,121.471455,121.471455};
+
     double speedValue = 0.0;
     double AccuracyValue = 0.0;
     String License_plate = "test-1130";
@@ -293,7 +294,7 @@ status.setText("");
     public void displayLocation() {
 if(MYmap!= null)
 {
-    MYmap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(latitude, longitude), 17));
+    MYmap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(latitude[0], longitude[0]), 17));
 
 }
 
@@ -314,11 +315,18 @@ if(MYmap!= null)
 
         if (mLastLocation != null)
         {
-            latitude = mLastLocation.getLatitude();
-            longitude = mLastLocation.getLongitude();
+            latitude[2] = latitude[1];
+            latitude[1] = latitude[0];
+            latitude[0] = mLastLocation.getLatitude();
+            latitude[0] = 0.6 * latitude[0] + 0.3 * latitude[1] + 0.1 * latitude[2];
+
+            longitude[2] = longitude[1];
+            longitude[1] = longitude[0];
+            longitude[0] = mLastLocation.getLongitude();
+            longitude[0] = 0.6 * longitude[0] + 0.3 * longitude[1] + 0.1 * longitude[2];
             speedValue = mLastLocation.getSpeed();
             AccuracyValue = mLastLocation.getAccuracy();
-            String location = getString(R.string.lbl_location, latitude, longitude);
+            String location = getString(R.string.lbl_location, latitude[0], longitude[0]);
             String speed = getString(R.string.lbl_speed, mLastLocation.getSpeed()*3600.0/1000.0);
 
 
@@ -470,7 +478,7 @@ if(MYmap!= null)
 
 
         LatLng home = new LatLng(25.000320, 121.545608);
-        LatLng NOW = new LatLng(latitude, longitude);
+        LatLng NOW = new LatLng(latitude[0], longitude[0]);
         if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
 
             return;
@@ -857,6 +865,10 @@ if((!Licenseedit1.getText().equals(""))&&(!Licenseedit1.getText().equals(""))) {
         private MediaPlayer mMediaH = MediaPlayer.create(MainActivity.this,R.raw.eventh);
         private MediaPlayer mMediaI = MediaPlayer.create(MainActivity.this,R.raw.eventi);
         private MediaPlayer mMediaJ = MediaPlayer.create(MainActivity.this,R.raw.eventj);
+        private MediaPlayer mMediaO = MediaPlayer.create(MainActivity.this,R.raw.evento);
+        private MediaPlayer mMediaL = MediaPlayer.create(MainActivity.this,R.raw.eventl);
+        private MediaPlayer mMediaM = MediaPlayer.create(MainActivity.this,R.raw.eventm);
+        private MediaPlayer mMediaN = MediaPlayer.create(MainActivity.this,R.raw.eventn);
         private boolean isplay = false;
         private Object A = false;
         private Object B= false;
@@ -868,6 +880,10 @@ if((!Licenseedit1.getText().equals(""))&&(!Licenseedit1.getText().equals(""))) {
         private Object H= false;
         private Object I= false;
         private Object J= false;
+        private Object O= false;
+        private Object L= false;
+        private Object M= false;
+        private Object N= false;
        private int sampling = 500;
         private int get_time = 500;
        private String CautionMessege = "";
@@ -896,6 +912,8 @@ if((!Licenseedit1.getText().equals(""))&&(!Licenseedit1.getText().equals(""))) {
 
                 } catch (Exception ex) {
                    Log.e(TAG,"123" + ex.getMessage());
+
+
         if(ex.toString().contains("connect")&&ex.toString().contains("fail"))
         {
             new Thread(new Runnable() {
@@ -959,7 +977,7 @@ if((!Licenseedit1.getText().equals(""))&&(!Licenseedit1.getText().equals(""))) {
                 String jsondata;// = "{\"Data\":{\"Name\":\"MichaelChan\",\"Email\":\"XXXX@XXX.com\",\"Phone\":[1234567,0911123456]}}";
 
                 jsondata= String.format("{\"Lic\": \"%s\" , \"LOG\" : %f , \"LAT\": %f, \"Speed\": %f ,\"Address\": \"%s\" ,\"Time\": \"%s\"}",
-                       License_plate,longitude,latitude,speedValue*3600.0/1000.0,mAddressOutput,serverTime);
+                       License_plate,longitude[0],latitude[0],speedValue*3600.0/1000.0,mAddressOutput,serverTime);
                 jsondata = URLEncoder.encode(jsondata, "UTF-8");
 
                 String urlParameters;// = "id=1234&pass=asd45";
@@ -1128,6 +1146,27 @@ if((!Licenseedit1.getText().equals(""))&&(!Licenseedit1.getText().equals(""))) {
                        J = true;
                     }
 
+                    if(j.get("O").equals(true))
+                    {
+                        CautionMessege+=  " 前方300公尺處禁止進入";
+                        O = true;
+                    }
+                    if(j.get("L").equals(true))
+                    {
+                        CautionMessege+=  " 前方300公尺處禁止左轉";
+                        L = true;
+                    }
+                    if(j.get("M").equals(true))
+                    {
+                        CautionMessege+=  " 前方300公尺處禁止右轉";
+                        M = true;
+                    }
+
+                    if(j.get("N").equals(true))
+                    {
+                        CautionMessege+=  " 前方300公尺處禁止轉彎";
+                        N = true;
+                    }
                      if(!CautionMessege.equals(""))
                      {
                          new Thread(new Runnable() {
@@ -1149,7 +1188,9 @@ if((!Licenseedit1.getText().equals(""))&&(!Licenseedit1.getText().equals(""))) {
                             D.equals(false)&&E.equals(false)
                             &&F.equals(false)&&G.equals(false)
                             &&H.equals(false)&&I.equals(false)
-                            &&J.equals(false))
+                            &&J.equals(false)&&O.equals(false)
+                        &&L.equals(false)&&M.equals(false)
+                        &&N.equals(false))
                     {
                             new Thread(new Runnable() {
                                 @Override
@@ -1271,6 +1312,46 @@ if((!Licenseedit1.getText().equals(""))&&(!Licenseedit1.getText().equals(""))) {
                                         }
                                         mMediaJ.start();
                                         J = false;
+                                    }
+                                    if(O.equals(true))
+                                    {
+                                        try {
+                                            Thread.sleep(playdelay);
+                                        } catch (InterruptedException e) {
+                                            e.printStackTrace();
+                                        }
+                                        mMediaO.start();
+                                        O = false;
+                                    }
+                                    if(L.equals(true))
+                                    {
+                                        try {
+                                            Thread.sleep(playdelay);
+                                        } catch (InterruptedException e) {
+                                            e.printStackTrace();
+                                        }
+                                        mMediaL.start();
+                                        L = false;
+                                    }
+                                    if(M.equals(true))
+                                    {
+                                        try {
+                                            Thread.sleep(playdelay);
+                                        } catch (InterruptedException e) {
+                                            e.printStackTrace();
+                                        }
+                                        mMediaM.start();
+                                        M = false;
+                                    }
+                                    if(N.equals(true))
+                                    {
+                                        try {
+                                            Thread.sleep(playdelay);
+                                        } catch (InterruptedException e) {
+                                            e.printStackTrace();
+                                        }
+                                        mMediaN.start();
+                                        N = false;
                                     }
 
                         }
