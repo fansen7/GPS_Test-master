@@ -69,7 +69,7 @@ public class MainActivity extends AppCompatActivity implements ConnectionCallbac
     double longitude = 0.0;
     double speedValue = 0.0;
     double AccuracyValue = 0.0;
-    String License_plate = "123-AAA";
+    String License_plate = "test-1130";
     private String mAddressOutput;
 
     // Debug tag
@@ -293,7 +293,7 @@ status.setText("");
     public void displayLocation() {
 if(MYmap!= null)
 {
-    MYmap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(latitude, longitude), 19));
+    MYmap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(latitude, longitude), 17));
 
 }
 
@@ -756,10 +756,10 @@ if(MYmap!= null)
 
         Line = new PolylineOptions()
                 .add(new LatLng(24.994298, 121.466711))
-                .add(new LatLng(24.994851, 121.466285))
-                .add(new LatLng(24.995100, 121.466033))
-                .add(new LatLng(24.995280, 121.465776))
-                .add(new LatLng(24.995752, 121.464885))
+                .add(new LatLng(24.994636, 121.466355))
+                .add(new LatLng(24.995115, 121.465891))
+                .add(new LatLng(24.995222, 121.465730))
+                .add(new LatLng(24.995703, 121.464805))
 
                 .width(15);//壽德街
         map.addPolyline(Line).setColor(Color.RED);
@@ -925,8 +925,12 @@ if((!Licenseedit1.getText().equals(""))&&(!Licenseedit1.getText().equals(""))) {
                     public void run() {
                         runOnUiThread(new Runnable() {
                             public void run() {
+                                String speed = getString(R.string.lbl_speed, speedValue*3600.0/1000.0);
 
-                                displayLocation();
+
+
+                                lblSpeed.setText(speed+" km/h");
+                           //     displayLocation();
                             }
                         });
 
