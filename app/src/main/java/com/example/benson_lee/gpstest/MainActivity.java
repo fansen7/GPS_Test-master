@@ -70,8 +70,8 @@ public class MainActivity extends AppCompatActivity implements ConnectionCallbac
 
     double speedValue = 0.0;
     double AccuracyValue = 0.0;
-    String License_plate = "test-1130";
-    private String mAddressOutput;
+    String License_plate = "test-1227";
+    private String mAddressOutput = "", mLastAddressOutput ="";
 
     // Debug tag
     private static final String TAG = MainActivity.class.getSimpleName();
@@ -99,20 +99,21 @@ public class MainActivity extends AppCompatActivity implements ConnectionCallbac
 
 
     //HTTP
-    String urlString = "http://122.116.45.4/";
+    public String url = "http://10.0.2.2/";
+    //public String url = "http://140.118.127.50/";
     public final String USER_AGENT = "Mozilla/5.0";
     private Date NowTime_ = new Date();
-
+    private boolean moveON = true;
 
 
 
 
 
     // UI
-    public TextView lblLocation, lblAddress, lblSpeed,Caution,Accuracy ,License,status;
+    public TextView lblLocation, lblAddress, lblSpeed,Caution,Accuracy ,License,status ,IP;
 
-    private Button  button1,btnStartLocationUpdates,UpdateLicense;
-    private EditText Licenseedit1, Licenseedit2;
+    private Button  button1,btnStartLocationUpdates,UpdateLicense,Rammoveswitch,UpdateIP;
+    private EditText Licenseedit1, Licenseedit2 ,IPinput;
 
     // Media player
 
@@ -124,14 +125,14 @@ public class MainActivity extends AppCompatActivity implements ConnectionCallbac
 
   //  private Handler mHandler ;
   private  GoogleMap MYmap ;
-
+    Thread t;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
 
-        Thread t = new HttpPost();
+        t = new HttpPost();
         t.start();
 
         // initialization
@@ -148,12 +149,15 @@ public class MainActivity extends AppCompatActivity implements ConnectionCallbac
         License= (TextView) findViewById(R.id.License);
         Licenseedit1 = (EditText) findViewById(R.id.Licenseedit1);
         Licenseedit2 = (EditText) findViewById(R.id.Licenseedit2);
+        IPinput = (EditText) findViewById(R.id.IPinput);
         status = (TextView) findViewById(R.id.Status);
+        IP = (TextView) findViewById(R.id.IP);
 
         UpdateLicense = (Button) findViewById(R.id.Update_License);
         button1 = (Button) findViewById(R.id.button1);
         btnStartLocationUpdates = (Button) findViewById(R.id.btnStartLocationUpdates);
-
+        Rammoveswitch  =(Button)findViewById(R.id.Rammove);
+        UpdateIP  =(Button)findViewById(R.id.UpdateIP);
 
         // Create Google Api Client object
         if (checkPlayServices()) {
@@ -177,7 +181,12 @@ public class MainActivity extends AppCompatActivity implements ConnectionCallbac
 
         // Show Location
 
-
+        Rammoveswitch.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                RamdomMoveLoc();
+            }
+        });
         btnStartLocationUpdates.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View view) {togglePeriodicLocationUpdates();
@@ -195,7 +204,14 @@ public class MainActivity extends AppCompatActivity implements ConnectionCallbac
             public void onClick(View v) {UpdateLicense();
             }
         });
+        UpdateIP.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {UpdateIP();
+            }
+        });
 License.setText("License : "+ License_plate);
+
+
 
 
 
@@ -214,16 +230,17 @@ License.setText("License : "+ License_plate);
 
         btnStartLocationUpdates.setText(getString(R.string.btn_stop_location_updates));
         mRequestingLocationUpdates = true;
-status.setText("");
-
-
+        status.setText("");
+        displayLocation();
+        RamdomMoveLoc();
+        IP.setText("URL : "+ url);
     }
 
 
 
     @Override
     protected void onStart() {
-    
+
         super.onStart();
 
         if (mGoogleApiClient != null) {
@@ -297,8 +314,6 @@ if(MYmap!= null)
     MYmap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(latitude[0], longitude[0]), 17));
 
 }
-
-
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
                 && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED)
         {
@@ -334,22 +349,29 @@ if(MYmap!= null)
             lblSpeed.setText(speed+" km/h");
             Accuracy.setText("Accuracy :" + AccuracyValue + " m" );
             startIntentService();
+            int resetTime = 0;
+            if(moveON) { //擾動GPS
+                while (mAddressOutput.equals("No geocoder available") && (resetTime < 1)) {
+                    Random ran = new Random();
+                    double Perturbation1 = (ran.nextInt(3) - 1) / 1000000;//擾動值
+                    double Perturbation2 = (ran.nextInt(3) - 1) / 1000000;
+                    double newLon = longitude[0] + Perturbation1;//擾動後座標
+                    double newLat = latitude[0] + Perturbation2;
 
-            // Show the map
-        /*    final double longOffset = 0.008959, latOffset = 0.004161;
-            String westBorder = String.valueOf(longitude - longOffset);
-            String eastBorder = String.valueOf(longitude + longOffset);
-            String southBorder = String.valueOf(latitude - latOffset);
-            String northBorder = String.valueOf(latitude + latOffset);
+                    mLastLocation.setLongitude(newLon);
+                    mLastLocation.setLatitude(newLat);
 
-            webMap.getSettings().setJavaScriptEnabled(true);
-            String html = "<iframe width=\"280\" height=\"400\" frameborder=\"0\" scrolling=\"no\" "
-                    + "marginheight=\"0\" marginwidth=\"0\" src=\"http://www.openstreetmap.org/export/embed.html?bbox="
-                    + westBorder + "%2C" + southBorder + "%2C" + eastBorder + "%2C" + northBorder
-                    + "&amp;layer=mapnik&amp;marker=" + String.valueOf(latitude) + "%2C"
-                    + String.valueOf(longitude) + "\" style=\"border: 1px solid black\"/>";
-            webMap.loadData(html, "text/html", null);
-          */
+                    startIntentService();
+
+                    resetTime++;
+                }
+                if (mAddressOutput.equals("No geocoder available")) {
+
+                    mAddressOutput = mLastAddressOutput;
+                }
+
+            }
+            lblAddress.setText(mAddressOutput);
         }
         else
         {
@@ -395,6 +417,24 @@ if(MYmap!= null)
             Log.d(TAG, "Periodic location updates stopped!");
         }
     }
+    private void RamdomMoveLoc() {
+        if (!moveON) {
+            // Changing the button text
+            Rammoveswitch
+                    .setText("關閉擾動");
+
+            moveON = true;
+
+            Log.d(TAG, "Ramdom move started!");
+        } else {
+            // Changing the button text
+            Rammoveswitch
+                    .setText("開啟擾動");
+            moveON = false;
+            Log.d(TAG, "Ramdom move stopped!");
+        }
+    }
+
 
     // Starting the location updates
     protected void startLocationUpdates() {
@@ -417,22 +457,6 @@ if(MYmap!= null)
         LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient, this);
     }
 
-    // Toggle playing media
-    protected void toggleMedia() {
-        if (!isMediaPlaying) {
-            mMedia.seekTo(0);
-            mMedia.start();
-        }
-        else {
-            mMedia.stop();
-            try {
-                mMedia.prepare();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-        isMediaPlaying = !isMediaPlaying;
-    }
 
     // Geocoder intent
     protected void startIntentService() {
@@ -447,29 +471,9 @@ if(MYmap!= null)
     public void onReceiveResult(int resultCode, Bundle resultData) {
         mAddressOutput = resultData.getString(Constants.RESULT_DATA_KEY);
 
-     /*   if(mAddressOutput.contains("弄"))
-        {
+         if (!mAddressOutput.equals("No geocoder available"))
+            mLastAddressOutput =  mAddressOutput;
 
-        }
-        else if(mAddressOutput.contains("巷")){
-
-        }
-        else if(mAddressOutput.contains("段")){
-
-        }
-        else if(mAddressOutput.contains("街")){
-
-        }
-        else if(mAddressOutput.contains("路")){
-
-        }
-
-*/
-
-
-
-
-        lblAddress.setText(mAddressOutput);
     }
 
     @Override
@@ -485,11 +489,7 @@ if(MYmap!= null)
         }
         map.setMyLocationEnabled(true);
 //----------------------------------------------------------
-    /*    map.addMarker(new MarkerOptions()
-                .title("Home")
-                .snippet("My Home.")
-                .position(home));*/
-//----------------------------------------------------------
+//地圖繪線
         PolylineOptions Line = new PolylineOptions()
                 .add(new LatLng(24.958333, 121.446849))
                 .add(new LatLng(24.958092, 121.446582))
@@ -772,253 +772,122 @@ if(MYmap!= null)
                 .width(15);//壽德街
         map.addPolyline(Line).setColor(Color.RED);
 
-
-      /*  Line = new PolylineOptions()
-                .add(new LatLng(25.000566, 121.545263))
-                .add(new LatLng(25.000250, 121.545406)).width(25);
-        map.addPolyline(Line).setColor(Color.YELLOW);
-
-        Line = new PolylineOptions()
-                .add(new LatLng(25.000007, 121.545520))
-                .add(new LatLng(25.000250, 121.545406));
-        Line.color(Color.GREEN).width(25);
-        */
-
     }
 
 
 
-    public void CautiondispA() {
-
-
-
-        Toast.makeText(getApplicationContext(), "您即將超速",
-                Toast.LENGTH_SHORT).show();
-
-
-    }
-    public void CautiondispB() {
-
-
-
-        Toast.makeText(getApplicationContext(), "您已經超速",
-                Toast.LENGTH_SHORT).show();
-
-    }
-    public void CautiondispC() {
-
-
-
-        Toast.makeText(getApplicationContext(), "您已經逆向行駛",
-                Toast.LENGTH_SHORT).show();
-
-    }
-    public void CautiondispD() {
-
-
-
-        Toast.makeText(getApplicationContext(), "您已經進入禁行區域",
-                Toast.LENGTH_SHORT).show();
-
-    }
-    public void CautiondispE() {
-
-
-
-        Toast.makeText(getApplicationContext(), "您已經違規左轉",
-                Toast.LENGTH_SHORT).show();
-
-    }
-
-    public void Cautiondisp(String M) {
-
-
-
-        Toast.makeText(getApplicationContext(), M,
-                Toast.LENGTH_SHORT).show();
-
-    }
     public void UpdateLicense() {
 
-if((!Licenseedit1.getText().equals(""))&&(!Licenseedit1.getText().equals(""))) {
-    String newLicense = Licenseedit1.getText() + "-" + Licenseedit2.getText();
-    License_plate =  newLicense;
-    License.setText("License : "+ License_plate);
+        if((!Licenseedit1.getText().toString().equals(""))&&
+                (!Licenseedit1.getText().toString().equals(""))) {
+            String newLicense = Licenseedit1.getText() + "-" + Licenseedit2.getText();
+            License_plate =  newLicense;
+            License.setText("License : "+ License_plate);
 
-}
+        }
 
     }
 
+    public void UpdateIP() {
+
+        if (!IPinput.getText().toString().equals("")) {
+            String newURL = "http://" + IPinput.getText() + "/";
+            url = newURL;
+            IP.setText("URL : " + url);
+
+        }else {
+            IP.setText("URL : " + url);
+        }
+
+    }
+        class HttpPost extends Thread {
+            private MediaPlayer mMediaA = MediaPlayer.create(MainActivity.this, R.raw.eventa);
+            private MediaPlayer mMediaB = MediaPlayer.create(MainActivity.this, R.raw.eventb);
+            private MediaPlayer mMediaC = MediaPlayer.create(MainActivity.this, R.raw.eventc);
+            private MediaPlayer mMediaD = MediaPlayer.create(MainActivity.this, R.raw.eventd);
+            private MediaPlayer mMediaE = MediaPlayer.create(MainActivity.this, R.raw.evente);
+            private MediaPlayer mMediaF = MediaPlayer.create(MainActivity.this, R.raw.eventf);
+            private MediaPlayer mMediaG = MediaPlayer.create(MainActivity.this, R.raw.eventg);
+            private MediaPlayer mMediaH = MediaPlayer.create(MainActivity.this, R.raw.eventh);
+            private MediaPlayer mMediaI = MediaPlayer.create(MainActivity.this, R.raw.eventi);
+            private MediaPlayer mMediaJ = MediaPlayer.create(MainActivity.this, R.raw.eventj);
+            private MediaPlayer mMediaO = MediaPlayer.create(MainActivity.this, R.raw.evento);
+            private MediaPlayer mMediaL = MediaPlayer.create(MainActivity.this, R.raw.eventl);
+            private MediaPlayer mMediaM = MediaPlayer.create(MainActivity.this, R.raw.eventm);
+            private MediaPlayer mMediaN = MediaPlayer.create(MainActivity.this, R.raw.eventn);
+            private boolean isplay = false;
+            private Object A = false;
+            private Object B = false;
+            private Object C = false;
+            private Object D = false;
+            private Object E = false;
+            private Object F = false;
+            private Object G = false;
+            private Object H = false;
+            private Object I = false;
+            private Object J = false;
+            private Object O = false;
+            private Object L = false;
+            private Object M = false;
+            private Object N = false;
+            private int sampling = 500;
+            private int get_time = 500;
+            private String CautionMessege = "";
+            int playdelay = 500;
 
 
 
 
-   class HttpPost extends Thread
-    {
-        private MediaPlayer mMediaA = MediaPlayer.create(MainActivity.this,R.raw.eventa);
-        private MediaPlayer mMediaB = MediaPlayer.create(MainActivity.this,R.raw.eventb);
-        private MediaPlayer mMediaC = MediaPlayer.create(MainActivity.this,R.raw.eventc);
-        private MediaPlayer mMediaD = MediaPlayer.create(MainActivity.this,R.raw.eventd);
-        private MediaPlayer mMediaE = MediaPlayer.create(MainActivity.this,R.raw.evente);
-        private MediaPlayer mMediaF = MediaPlayer.create(MainActivity.this,R.raw.eventf);
-        private MediaPlayer mMediaG = MediaPlayer.create(MainActivity.this,R.raw.eventg);
-        private MediaPlayer mMediaH = MediaPlayer.create(MainActivity.this,R.raw.eventh);
-        private MediaPlayer mMediaI = MediaPlayer.create(MainActivity.this,R.raw.eventi);
-        private MediaPlayer mMediaJ = MediaPlayer.create(MainActivity.this,R.raw.eventj);
-        private MediaPlayer mMediaO = MediaPlayer.create(MainActivity.this,R.raw.evento);
-        private MediaPlayer mMediaL = MediaPlayer.create(MainActivity.this,R.raw.eventl);
-        private MediaPlayer mMediaM = MediaPlayer.create(MainActivity.this,R.raw.eventm);
-        private MediaPlayer mMediaN = MediaPlayer.create(MainActivity.this,R.raw.eventn);
-        private boolean isplay = false;
-        private Object A = false;
-        private Object B= false;
-        private Object C= false;
-        private Object D= false;
-        private Object E= false;
-        private Object F= false;
-        private Object G= false;
-        private Object H= false;
-        private Object I= false;
-        private Object J= false;
-        private Object O= false;
-        private Object L= false;
-        private Object M= false;
-        private Object N= false;
-       private int sampling = 500;
-        private int get_time = 500;
-       private String CautionMessege = "";
-        int playdelay = 500;
-        // String url = "http://10.0.2.2/";//host
-       // String url = "http://122.116.45.4/";
-         String url = "http://140.118.127.50/";
-
-        private ArrayList DataBuffer = new ArrayList();
+            private ArrayList DataBuffer = new ArrayList();
 
 
-        @Override
-        public void run() {
+            @Override
+            public void run() {
 
-            for (;;) { //
-          //  for (int i = 0;i<15;i++) { // infinite loop to print message
-                try {
+                for (;;) {
+                    try {
+                        sendPost();
+                        Thread.sleep(sampling);
+                        GetMessagebyPost();
+                        Thread.sleep(get_time);
 
-
-                  sendPost();
-                // if(i<15)
-                  //   sendPostTest(i%15);
-                  Thread.sleep(sampling);
-                  GetMessagebyPost();
-                  Thread.sleep(get_time);
-
-                } catch (Exception ex) {
-                   Log.e(TAG,"123" + ex.getMessage());
+                    } catch (Exception ex) {
+                        Log.e(TAG, "Runtime:" + ex.getMessage());
 
 
-        if(ex.toString().contains("connect")&&ex.toString().contains("fail"))
-        {
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    runOnUiThread(new Runnable() {
-                        public void run() {
+                        if (ex.toString().contains("connect") && ex.toString().contains("fail")) {
+                            new Thread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    runOnUiThread(new Runnable() {
+                                        public void run() {
 
-                            status.setText("disConnected");
+                                            status.setText("disConnected");
+                                        }
+                                    });
+
+                                }
+                            }).start();
                         }
-                    });
-
-                }
-            }).start();
-        }
-                }
-
-            }
-        }
-        // HTTP POST request
-        private void sendPost() throws Exception {
-
-            if(speedValue*3600.0/1000.0 <2.0)
-            {
-                new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        runOnUiThread(new Runnable() {
-                            public void run() {
-                                String speed = getString(R.string.lbl_speed, speedValue*3600.0/1000.0);
-
-
-
-                                lblSpeed.setText(speed+" km/h");
-                           //     displayLocation();
-                            }
-                        });
-
                     }
-                }).start();
+
+                }
             }
 
+            // HTTP POST request
+            private void sendPost() throws Exception {
 
-            URL obj = new URL(url);
-            HttpURLConnection con = (HttpURLConnection) obj.openConnection();
-            try{
-
-               con.setConnectTimeout(5000);
-                //add reuqest header
-                con.setRequestMethod("POST");
-                con.setRequestProperty("User-Agent", USER_AGENT);
-                con.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
-
-                //格式化時間字串
-                SimpleDateFormat formatter =new SimpleDateFormat("yyyy/MM/dd  HH:mm:ss");
-                NowTime_.setTime(System.currentTimeMillis());
-                String serverTime =  formatter.format(NowTime_);
-
-
-                Random ran = new Random();
-                String jsondata;// = "{\"Data\":{\"Name\":\"MichaelChan\",\"Email\":\"XXXX@XXX.com\",\"Phone\":[1234567,0911123456]}}";
-
-                jsondata= String.format("{\"Lic\": \"%s\" , \"LOG\" : %f , \"LAT\": %f, \"Speed\": %f ,\"Address\": \"%s\" ,\"Time\": \"%s\"}",
-                       License_plate,longitude[0],latitude[0],speedValue*3600.0/1000.0,mAddressOutput,serverTime);
-                jsondata = URLEncoder.encode(jsondata, "UTF-8");
-
-                String urlParameters;// = "id=1234&pass=asd45";
-
-                urlParameters ="Data "+jsondata;
-               // DataBuffer.add(urlParameters);
-
-
-
-                // Send post request
-                con.setDoOutput(true);
-                DataOutputStream wr = new DataOutputStream(con.getOutputStream());
-                wr.writeBytes(urlParameters);
-                wr.flush();
-                wr.close();
-
-
-                //取得回應訊息
-                int responseCode = con.getResponseCode();
-
-
-                BufferedReader in = new BufferedReader(
-                        new InputStreamReader(con.getInputStream()));
-                String inputLine;
-                StringBuffer response = new StringBuffer();
-
-                while ((inputLine = in.readLine()) != null) {
-                    response.append(inputLine);
-                }
-                in.close();
-                if(response.toString().equals("ACK"))
-               // if(con.getResponseCode() == 200)
-                {
-         //           DataBuffer.remove(urlParameters);
-                   new Thread(new Runnable() {
+                if (speedValue * 3600.0 / 1000.0 < 2.0) {
+                    new Thread(new Runnable() {
                         @Override
                         public void run() {
                             runOnUiThread(new Runnable() {
                                 public void run() {
+                                    String speed = getString(R.string.lbl_speed, speedValue * 3600.0 / 1000.0);
 
-                                    status.setText("Connected");
+
+                                    lblSpeed.setText(speed + " km/h");
+                                    //     displayLocation();
                                 }
                             });
 
@@ -1027,57 +896,120 @@ if((!Licenseedit1.getText().equals(""))&&(!Licenseedit1.getText().equals(""))) {
                 }
 
 
-
-
-
-            }catch (Exception ex)
-            {
-
-                throw ex;
-            }
-
-        }
-        private void GetMessagebyPost() throws Exception {
-
-            try{
-
                 URL obj = new URL(url);
                 HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+                try {
 
-                //add reuqest header
-                con.setConnectTimeout(5000);
-                con.setRequestMethod("POST");
-                con.setRequestProperty("User-Agent", USER_AGENT);
-                con.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
+                    con.setConnectTimeout(5000);
+                    //add reuqest header
+                    con.setRequestMethod("POST");
+                    con.setRequestProperty("User-Agent", USER_AGENT);
+                    con.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
 
-                String urlParameters;// = "id=1234&pass=asd45";
-
-                urlParameters ="Get Message";
-
-                // Send post request
-                con.setDoOutput(true);
-                DataOutputStream wr = new DataOutputStream(con.getOutputStream());
-                wr.writeBytes(urlParameters);
-                wr.flush();
-                wr.close();
+                    //格式化時間字串
+                    SimpleDateFormat formatter = new SimpleDateFormat("yyyy/MM/dd  HH:mm:ss");
+                    NowTime_.setTime(System.currentTimeMillis());
+                    String serverTime = formatter.format(NowTime_);
 
 
+                    Random ran = new Random();
+                    String jsondata;// = "{\"Data\":{\"Name\":\"MichaelChan\",\"Email\":\"XXXX@XXX.com\",\"Phone\":[1234567,0911123456]}}";
 
-                //取得回應訊息
-                int responseCode = con.getResponseCode();
+                    jsondata = String.format("{\"Lic\": \"%s\" , \"LOG\" : %f , \"LAT\": %f, \"Speed\": %f ,\"Address\": \"%s\" ,\"Time\": \"%s\"}",
+                            License_plate, longitude[0], latitude[0], speedValue * 3600.0 / 1000.0, mAddressOutput, serverTime);
+                    jsondata = URLEncoder.encode(jsondata, "UTF-8");
+
+                    String urlParameters;// = "id=1234&pass=asd45";
+
+                    urlParameters = "Data " + jsondata;
+                    // DataBuffer.add(urlParameters);
 
 
+                    // Send post request
+                    con.setDoOutput(true);
+                    DataOutputStream wr = new DataOutputStream(con.getOutputStream());
+                    wr.writeBytes(urlParameters);
+                    wr.flush();
+                    wr.close();
 
-                BufferedReader in = new BufferedReader(
-                        new InputStreamReader(con.getInputStream()));
-                String inputLine;
-                StringBuffer response = new StringBuffer();
 
-                while ((inputLine = in.readLine()) != null) {
-                    response.append(inputLine);
+                    //取得回應訊息
+                    int responseCode = con.getResponseCode();
+
+
+                    BufferedReader in = new BufferedReader(
+                            new InputStreamReader(con.getInputStream()));
+                    String inputLine;
+                    StringBuffer response = new StringBuffer();
+
+                    while ((inputLine = in.readLine()) != null) {
+                        response.append(inputLine);
+                    }
+                    in.close();
+                    if (response.toString().equals("ACK"))
+                    // if(con.getResponseCode() == 200)
+                    {
+                        //           DataBuffer.remove(urlParameters);
+                        new Thread(new Runnable() {
+                            @Override
+                            public void run() {
+                                runOnUiThread(new Runnable() {
+                                    public void run() {
+
+                                        status.setText("Connected");
+                                    }
+                                });
+
+                            }
+                        }).start();
+                    }
+
+
+                } catch (Exception ex) {
+
+                    throw ex;
                 }
-               if(responseCode == 200)
-                {
+
+            }
+
+            private void GetMessagebyPost() throws Exception {
+
+                try {
+
+                    URL obj = new URL(url);
+                    HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+
+                    //add reuqest header
+                    con.setConnectTimeout(5000);
+                    con.setRequestMethod("POST");
+                    con.setRequestProperty("User-Agent", USER_AGENT);
+                    con.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
+
+                    String urlParameters;// = "id=1234&pass=asd45";
+
+                    urlParameters = "Get Message";
+
+                    // Send post request
+                    con.setDoOutput(true);
+                    DataOutputStream wr = new DataOutputStream(con.getOutputStream());
+                    wr.writeBytes(urlParameters);
+                    wr.flush();
+                    wr.close();
+
+
+                    //取得回應訊息
+                    int responseCode = con.getResponseCode();
+
+
+                    BufferedReader in = new BufferedReader(
+                            new InputStreamReader(con.getInputStream()));
+                    String inputLine;
+                    StringBuffer response = new StringBuffer();
+
+                    while ((inputLine = in.readLine()) != null) {
+                        response.append(inputLine);
+                    }
+                    if (responseCode == 200) {
                         new Thread(new Runnable() {
                             @Override
                             public void run() {
@@ -1091,107 +1023,91 @@ if((!Licenseedit1.getText().equals(""))&&(!Licenseedit1.getText().equals(""))) {
                             }
                         }).start();
 
-                    CautionMessege = "";
-                    JSONObject j;
-                    j = new JSONObject(response.toString());
-                    if(j.get("A").equals(true))
-                    {
-                        CautionMessege+=  " 即將超速";
-                        A = true;
-                    }
-                    if(j.get("B").equals(true))
-                    {
-                        CautionMessege+=  " 已經超速";
-                        B = true;
-                    }
-                    if(j.get("C").equals(true))
-                    {
-                        CautionMessege+=  " 逆向行駛";
-                        C = true;
-                    }
-                    if(j.get("D").equals(true))
-                    {
-                        CautionMessege+=  " 進入禁行區域 請離開";
-                        D = true;
-                    }
-                    if(j.get("E").equals(true))
-                    {
-                        CautionMessege+=  " 違規左轉";
-                        E = true;
-                    }
-                    if(j.get("F").equals(true))
-                    {
-                        CautionMessege+=  " 違規右轉";
-                        F = true;
-                    }
-                    if(j.get("G").equals(true))
-                    {
-                        CautionMessege+=  " 前方路段禁止進入";
-                       G = true;
-                    }
-                    if(j.get("H").equals(true))
-                    {
-                        CautionMessege+=  " 前方禁止左轉";
-                        H = true;
-                    }
-                    if(j.get("I").equals(true))
-                    {
-                        CautionMessege+=  " 前方禁止右轉";
-                        I = true;
-                    }
+                        CautionMessege = "";
+                        JSONObject j;
+                        j = new JSONObject(response.toString());
+                        if (j.get("A").equals(true)) {
+                            CautionMessege += " 即將超速";
+                            A = true;
+                        }
+                        if (j.get("B").equals(true)) {
+                            CautionMessege += " 已經超速";
+                            B = true;
+                        }
+                        if (j.get("C").equals(true)) {
+                            CautionMessege += " 逆向行駛";
+                            C = true;
+                        }
+                        if (j.get("D").equals(true)) {
+                            CautionMessege += " 進入禁行區域 請離開";
+                            D = true;
+                        }
+                        if (j.get("E").equals(true)) {
+                            CautionMessege += " 違規左轉";
+                            E = true;
+                        }
+                        if (j.get("F").equals(true)) {
+                            CautionMessege += " 違規右轉";
+                            F = true;
+                        }
+                        if (j.get("G").equals(true)) {
+                            CautionMessege += " 前方路段禁止進入";
+                            G = true;
+                        }
+                        if (j.get("H").equals(true)) {
+                            CautionMessege += " 前方禁止左轉";
+                            H = true;
+                        }
+                        if (j.get("I").equals(true)) {
+                            CautionMessege += " 前方禁止右轉";
+                            I = true;
+                        }
 
-                    if(j.get("J").equals(true))
-                    {
-                        CautionMessege+=  " 前方禁止轉彎";
-                       J = true;
-                    }
+                        if (j.get("J").equals(true)) {
+                            CautionMessege += " 前方禁止轉彎";
+                            J = true;
+                        }
 
-                    if(j.get("O").equals(true))
-                    {
-                        CautionMessege+=  " 前方300公尺處禁止進入";
-                        O = true;
-                    }
-                    if(j.get("L").equals(true))
-                    {
-                        CautionMessege+=  " 前方300公尺處禁止左轉";
-                        L = true;
-                    }
-                    if(j.get("M").equals(true))
-                    {
-                        CautionMessege+=  " 前方300公尺處禁止右轉";
-                        M = true;
-                    }
+                        if (j.get("O").equals(true)) {
+                            CautionMessege += " 前方300公尺處禁止進入";
+                            O = true;
+                        }
+                        if (j.get("L").equals(true)) {
+                            CautionMessege += " 前方300公尺處禁止左轉";
+                            L = true;
+                        }
+                        if (j.get("M").equals(true)) {
+                            CautionMessege += " 前方300公尺處禁止右轉";
+                            M = true;
+                        }
 
-                    if(j.get("N").equals(true))
-                    {
-                        CautionMessege+=  " 前方300公尺處禁止轉彎";
-                        N = true;
-                    }
-                     if(!CautionMessege.equals(""))
-                     {
-                         new Thread(new Runnable() {
-                             @Override
-                             public void run() {
-                                 runOnUiThread(new Runnable() {
-                                     public void run() {
-                                         Caution.setText(CautionMessege);
-                        //                 Cautiondisp(CautionMessege);
-                                     }
-                                 });
+                        if (j.get("N").equals(true)) {
+                            CautionMessege += " 前方300公尺處禁止轉彎";
+                            N = true;
+                        }
+                        if (!CautionMessege.equals("")) {
+                            new Thread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    runOnUiThread(new Runnable() {
+                                        public void run() {
+                                            Caution.setText(CautionMessege);
+                                            //                 Cautiondisp(CautionMessege);
+                                        }
+                                    });
 
-                             }
-                         }).start();
-                     }
+                                }
+                            }).start();
+                        }
 
 
-                    if(A.equals(false)&&B.equals(false)&&C.equals(false)&&
-                            D.equals(false)&&E.equals(false)
-                            &&F.equals(false)&&G.equals(false)
-                            &&H.equals(false)&&I.equals(false)
-                            &&J.equals(false)&&O.equals(false)
-                        &&L.equals(false)&&M.equals(false)
-                        &&N.equals(false))
-                    {
+                        if (A.equals(false) && B.equals(false) && C.equals(false) &&
+                                D.equals(false) && E.equals(false)
+                                && F.equals(false) && G.equals(false)
+                                && H.equals(false) && I.equals(false)
+                                && J.equals(false) && O.equals(false)
+                                && L.equals(false) && M.equals(false)
+                                && N.equals(false)) {
                             new Thread(new Runnable() {
                                 @Override
                                 public void run() {
@@ -1204,353 +1120,156 @@ if((!Licenseedit1.getText().equals(""))&&(!Licenseedit1.getText().equals(""))) {
 
                                 }
                             }).start();
-                    }
-        /*            isplay = (mMediaA.isPlaying()||mMediaB.isPlaying()||
-                            mMediaC.isPlaying()||mMediaD.isPlaying()||
-                            mMediaE.isPlaying()||mMediaF.isPlaying()||
-                            mMediaG.isPlaying());*/
-                    new Thread(new Runnable() {
-
-                                public void run() {
-                                    if(A.equals(true))
-                                    {
-                                        try {
-                                            Thread.sleep(playdelay);
-                                        } catch (InterruptedException e) {
-                                            e.printStackTrace();
-                                        }
-                                        mMediaA.start();
-                                        A = false;
-                                    }
-                                    if(B.equals(true))
-                                    {
-                                        try {
-                                            Thread.sleep(playdelay);
-                                        } catch (InterruptedException e) {
-                                            e.printStackTrace();
-                                        }
-                                        mMediaB.start();
-                                        B = false;
-                                    }
-                                    if(C.equals(true))
-                                    {
-                                        try {
-                                            Thread.sleep(playdelay);
-                                        } catch (InterruptedException e) {
-                                            e.printStackTrace();
-                                        }
-                                        mMediaC.start();
-                                        C = false;
-                                    }
-                                    if(D.equals(true))
-                                    {
-                                        try {
-                                            Thread.sleep(playdelay);
-                                        } catch (InterruptedException e) {
-                                            e.printStackTrace();
-                                        }
-                                        mMediaD.start();
-                                        D = false;
-                                    }
-                                    if(E.equals(true))
-                                    {
-                                        try {
-                                            Thread.sleep(playdelay);
-                                        } catch (InterruptedException e) {
-                                            e.printStackTrace();
-                                        }
-                                        mMediaE.start();
-                                        E = false;
-                                    }
-                                    if(F.equals(true))
-                                    {
-                                        try {
-                                            Thread.sleep(playdelay);
-                                        } catch (InterruptedException e) {
-                                            e.printStackTrace();
-                                        }
-                                        mMediaF.start();
-                                        F = false;
-                                    }
-
-                                    if(G.equals(true))
-                                    {
-                                        try {
-                                            Thread.sleep(playdelay);
-                                        } catch (InterruptedException e) {
-                                            e.printStackTrace();
-                                        }
-                                        mMediaG.start();
-                                        G = false;
-                                    }
-                                  if(H.equals(true))
-                                    {
-                                        try {
-                                            Thread.sleep(playdelay);
-                                        } catch (InterruptedException e) {
-                                            e.printStackTrace();
-                                        }
-                                        mMediaH.start();
-                                        H = false;
-                                    }
-                                    if(I.equals(true))
-                                    {
-                                        try {
-                                            Thread.sleep(playdelay);
-                                        } catch (InterruptedException e) {
-                                            e.printStackTrace();
-                                        }
-                                        mMediaI.start();
-                                        I = false;
-                                    }
-                                    if(J.equals(true))
-                                    {
-                                        try {
-                                            Thread.sleep(playdelay);
-                                        } catch (InterruptedException e) {
-                                            e.printStackTrace();
-                                        }
-                                        mMediaJ.start();
-                                        J = false;
-                                    }
-                                    if(O.equals(true))
-                                    {
-                                        try {
-                                            Thread.sleep(playdelay);
-                                        } catch (InterruptedException e) {
-                                            e.printStackTrace();
-                                        }
-                                        mMediaO.start();
-                                        O = false;
-                                    }
-                                    if(L.equals(true))
-                                    {
-                                        try {
-                                            Thread.sleep(playdelay);
-                                        } catch (InterruptedException e) {
-                                            e.printStackTrace();
-                                        }
-                                        mMediaL.start();
-                                        L = false;
-                                    }
-                                    if(M.equals(true))
-                                    {
-                                        try {
-                                            Thread.sleep(playdelay);
-                                        } catch (InterruptedException e) {
-                                            e.printStackTrace();
-                                        }
-                                        mMediaM.start();
-                                        M = false;
-                                    }
-                                    if(N.equals(true))
-                                    {
-                                        try {
-                                            Thread.sleep(playdelay);
-                                        } catch (InterruptedException e) {
-                                            e.printStackTrace();
-                                        }
-                                        mMediaN.start();
-                                        N = false;
-                                    }
-
                         }
-                    }).start();
 
-     /*              if(A.equals(true))
-                    {
-                        if(!isplay)
-                        {
-                          mMediaA.start();
-                          A = false;
-                            isplay  =mMediaA.isPlaying();
-                           new Thread(new Runnable() {
-                                @Override
-                               public void run() {
-                                    runOnUiThread(new Runnable() {
-                                        public void run() {
-                                            Caution.setText("您即將超速");
-                                            CautiondispA();
-                                        }
-                                    });
+                        new Thread(new Runnable() {
 
+                            public void run() {
+                                if (A.equals(true)) {
+                                    try {
+                                        Thread.sleep(playdelay);
+                                    } catch (InterruptedException e) {
+                                        e.printStackTrace();
+                                    }
+                                    mMediaA.start();
+                                    A = false;
                                 }
-                            }).start();
-
-                        }
-                    }
-
-                    if(B.equals(true))
-                    {
-                        if(!isplay)
-                        {
-                            mMediaB.start();
-                            B = false;
-                            isplay  =mMediaB.isPlaying();
-                           new Thread(new Runnable() {
-                                @Override
-                                public void run() {
-                                    runOnUiThread(new Runnable() {
-                                        public void run() {
-
-                                            CautiondispB();
-                                            Caution.setText("您已經超速");
-                                        }
-                                    });
-
+                                if (B.equals(true)) {
+                                    try {
+                                        Thread.sleep(playdelay);
+                                    } catch (InterruptedException e) {
+                                        e.printStackTrace();
+                                    }
+                                    mMediaB.start();
+                                    B = false;
                                 }
-                            }).start();
-                        }
-                    }
-                    if(C.equals(true))
-                    {
-                        if(!isplay)
-                        {
-                            mMediaC.start();
-                            C = false;
-                            isplay  =mMediaC.isPlaying();
-                            new Thread(new Runnable() {
-                                @Override
-                                public void run() {
-                                    runOnUiThread(new Runnable() {
-                                        public void run() {
-
-                                            CautiondispC();
-                                            Caution.setText("您已逆向行駛");
-                                        }
-                                    });
-
+                                if (C.equals(true)) {
+                                    try {
+                                        Thread.sleep(playdelay);
+                                    } catch (InterruptedException e) {
+                                        e.printStackTrace();
+                                    }
+                                    mMediaC.start();
+                                    C = false;
                                 }
-                            }).start();
-                        }
-                    }
-                    if(D.equals(true))
-                    {
-                        if(!isplay)
-                        {
-                            mMediaD.start();
-                            D = false;
-                            isplay  =mMediaD.isPlaying();
-                            new Thread(new Runnable() {
-                                @Override
-                                public void run() {
-                                    runOnUiThread(new Runnable() {
-                                        public void run() {
-
-                                            CautiondispD();
-                                            Caution.setText("您已進入禁止區域");
-                                        }
-                                    });
-
+                                if (D.equals(true)) {
+                                    try {
+                                        Thread.sleep(playdelay);
+                                    } catch (InterruptedException e) {
+                                        e.printStackTrace();
+                                    }
+                                    mMediaD.start();
+                                    D = false;
                                 }
-                            }).start();
-                        }
-                    }
-                    if(E.equals(true))
-                    {
-                        if(!isplay)
-                        {
-                            mMediaE.start();
-                            E = false;
-                            isplay  =mMediaE.isPlaying();
-                            new Thread(new Runnable() {
-                                @Override
-                                public void run() {
-                                    runOnUiThread(new Runnable() {
-                                        public void run() {
-
-                                            CautiondispE();
-                                            Caution.setText("您已違規左轉");
-                                        }
-                                    });
-
+                                if (E.equals(true)) {
+                                    try {
+                                        Thread.sleep(playdelay);
+                                    } catch (InterruptedException e) {
+                                        e.printStackTrace();
+                                    }
+                                    mMediaE.start();
+                                    E = false;
                                 }
-                            }).start();
-                        }
+                                if (F.equals(true)) {
+                                    try {
+                                        Thread.sleep(playdelay);
+                                    } catch (InterruptedException e) {
+                                        e.printStackTrace();
+                                    }
+                                    mMediaF.start();
+                                    F = false;
+                                }
+
+                                if (G.equals(true)) {
+                                    try {
+                                        Thread.sleep(playdelay);
+                                    } catch (InterruptedException e) {
+                                        e.printStackTrace();
+                                    }
+                                    mMediaG.start();
+                                    G = false;
+                                }
+                                if (H.equals(true)) {
+                                    try {
+                                        Thread.sleep(playdelay);
+                                    } catch (InterruptedException e) {
+                                        e.printStackTrace();
+                                    }
+                                    mMediaH.start();
+                                    H = false;
+                                }
+                                if (I.equals(true)) {
+                                    try {
+                                        Thread.sleep(playdelay);
+                                    } catch (InterruptedException e) {
+                                        e.printStackTrace();
+                                    }
+                                    mMediaI.start();
+                                    I = false;
+                                }
+                                if (J.equals(true)) {
+                                    try {
+                                        Thread.sleep(playdelay);
+                                    } catch (InterruptedException e) {
+                                        e.printStackTrace();
+                                    }
+                                    mMediaJ.start();
+                                    J = false;
+                                }
+                                if (O.equals(true)) {
+                                    try {
+                                        Thread.sleep(playdelay);
+                                    } catch (InterruptedException e) {
+                                        e.printStackTrace();
+                                    }
+                                    mMediaO.start();
+                                    O = false;
+                                }
+                                if (L.equals(true)) {
+                                    try {
+                                        Thread.sleep(playdelay);
+                                    } catch (InterruptedException e) {
+                                        e.printStackTrace();
+                                    }
+                                    mMediaL.start();
+                                    L = false;
+                                }
+                                if (M.equals(true)) {
+                                    try {
+                                        Thread.sleep(playdelay);
+                                    } catch (InterruptedException e) {
+                                        e.printStackTrace();
+                                    }
+                                    mMediaM.start();
+                                    M = false;
+                                }
+                                if (N.equals(true)) {
+                                    try {
+                                        Thread.sleep(playdelay);
+                                    } catch (InterruptedException e) {
+                                        e.printStackTrace();
+                                    }
+                                    mMediaN.start();
+                                    N = false;
+                                }
+
+                            }
+                        }).start();
+
+
                     }
-*/
+
+                    in.close();
+
+                } catch (Exception ex) {
+                    throw ex;
                 }
-
-                in.close();
-
             }
-            catch (Exception ex) {
-                throw ex;
-            }
+
+
+
+
         }
 
-
-
-
-        private void sendPostTest(int i) throws Exception {
-
-            URL obj = new URL(url);
-            HttpURLConnection con = (HttpURLConnection) obj.openConnection();
-            try{
-                //add reuqest header
-                con.setRequestMethod("POST");
-                con.setRequestProperty("User-Agent", USER_AGENT);
-                con.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
-
-                //格式化時間字串
-                SimpleDateFormat formatter =new SimpleDateFormat("yyyy/MM/dd  HH:mm:ss");
-                NowTime_.setTime(System.currentTimeMillis());
-                String serverTime =  formatter.format(NowTime_);
-Test T1 = new Test();
-
-
-                String jsondata;// = "{\"Data\":{\"Name\":\"MichaelChan\",\"Email\":\"XXXX@XXX.com\",\"Phone\":[1234567,0911123456]}}";
-
-                jsondata= String.format("{\"Lic\": \"%s\" , \"LOG\" : %f , \"LAT\": %f, \"Speed\": %f ,\"Address\": \"%s\" ,\"Time\": \"%s\"}",
-                        License_plate,T1.TestLon[i],T1.TestLat[i],T1.TestSpeed[i],T1.TestAddress[i],serverTime);
-                  jsondata = URLEncoder.encode(jsondata, "UTF-8");
-
-                String urlParameters;// = "id=1234&pass=asd45";
-
-                urlParameters ="Data "+jsondata;
-                //  DataBuffer.add(urlParameters);
-
-
-
-                // Send post request
-                con.setDoOutput(true);
-                DataOutputStream wr = new DataOutputStream(con.getOutputStream());
-                wr.writeBytes(urlParameters);
-                wr.flush();
-                wr.close();
-
-
-                //取得回應訊息
-                int responseCode = con.getResponseCode();
-
-
-                BufferedReader in = new BufferedReader(
-                        new InputStreamReader(con.getInputStream()));
-                String inputLine;
-                StringBuffer response = new StringBuffer();
-
-                while ((inputLine = in.readLine()) != null) {
-                    response.append(inputLine);
-                }
-                in.close();
-                if(response.toString().equals("ACK"))
-                {
-                    DataBuffer.remove(urlParameters);
-                }
-
-
-
-
-
-            }catch (Exception ex)
-            {
-
-                throw ex;
-            }
-
-        }
 
     }
-
-
-}
